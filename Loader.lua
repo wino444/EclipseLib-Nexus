@@ -1,36 +1,29 @@
 --[[
-    EclipseLib-Nexus Loader
-    Version: 1.0.0
-    ส่วนหนึ่งของ EclipseLib-Nexus โดย wino444 & Deekseek AI Lab
-    หน้าที่: โหลดทุกโมดูลตามลำดับ + ฉีด Dependency + ส่งคืน EclipseLib Object
+    EclipseLib-Nexus Loader (Remote Edition)
+    Version: 1.1.0
+    ดึงทุกโมดูลจาก GitHub Raw โดยอัตโนมัติ – ไม่จำเป็นต้องมีไฟล์ในเครื่อง
 ]]
 
-local NexusPath = "EclipseLib-Nexus/" -- เปลี่ยนตาม path จริงของโฟลเดอร์
+local BASE_URL = "https://raw.githubusercontent.com/wino444/EclipseLib-Nexus/main/"
 
--- ฟังก์ชันภายในสำหรับโหลดไฟล์ Lua
+-- ฟังก์ชันภายในสำหรับโหลดโมดูลจาก URL
 local function loadModule(relativePath)
-    local fullPath = NexusPath .. relativePath
+    local url = BASE_URL .. relativePath
     local success, code = pcall(function()
-        if not isfile or not readfile then
-            error("Executor ไม่รองรับ filesystem (isfile/readfile)")
-        end
-        if not isfile(fullPath) then
-            error("ไม่พบไฟล์: " .. fullPath)
-        end
-        return readfile(fullPath)
+        return game:HttpGet(url)
     end)
     if not success or not code then
-        warn("❌ โหลดไฟล์ไม่สำเร็จ: " .. fullPath .. " | เหตุผล: " .. tostring(code))
+        warn("❌ โหลดโมดูลไม่สำเร็จ: " .. url .. " | เหตุผล: " .. tostring(code))
         return nil
     end
     local fn, err = loadstring(code)
     if not fn then
-        warn("❌ Compile error ใน " .. fullPath .. ": " .. err)
+        warn("❌ Compile error ใน " .. url .. ": " .. err)
         return nil
     end
     local ok, result = pcall(fn)
     if not ok then
-        warn("❌ Runtime error ใน " .. fullPath .. ": " .. tostring(result))
+        warn("❌ Runtime error ใน " .. url .. ": " .. tostring(result))
         return nil
     end
     return result
@@ -70,75 +63,53 @@ local BaseCard = loadModule("Components/BaseCard.lua")
 local TabBar = loadModule("Components/TabBar.lua")
 local TabFrame = loadModule("Components/TabFrame.lua")
 
--- 8. Elements (โหลดทุกไฟล์ใน Elements/ อัตโนมัติ)
+-- 8. Elements (โหลดทุกไฟล์ใน Elements/ จากรายการที่เรากำหนด)
 local Elements = {}
-if isfolder and listfiles then
-    local elementPath = NexusPath .. "Components/Elements"
-    if isfolder(elementPath) then
-        local files = listfiles(elementPath)
-        for _, file in ipairs(files) do
-            if file:match("%.lua$") then
-                local name = file:match("([^/\\]+)%.lua$")
-                local module = loadModule("Components/Elements/" .. name .. ".lua")
-                if module then
-                    Elements[name] = module
-                end
-            end
-        end
+local elementFiles = {
+    "Label", "Section", "Button", "Toggle", "Slider", "Dropdown",
+    "Input", "ProgressBar", "Paragraph", "ColorPicker", "Keybind", "Card"
+}
+for _, name in ipairs(elementFiles) do
+    local module = loadModule("Components/Elements/" .. name .. ".lua")
+    if module then
+        Elements[name] = module
     end
 end
 
--- 9. Shield/MobileOptimizer.lua (โหลดหลัง Elements)
+-- 9. Shield/MobileOptimizer.lua
 local MobileOptimizer = loadModule("Shield/MobileOptimizer.lua")
 if MobileOptimizer and MobileOptimizer.Toggle then
-    -- อ่านค่าเริ่มต้นจาก SafeGlobal หรือค่า default
     local initState = Init.SafeGlobal:Get("EclipseNexus_MobileOptimize", true)
     MobileOptimizer:Toggle(initState)
 end
 
--- 10. Core/Window.lua (เป็นตัวสุดท้ายที่ต้องรับ dependencies ทั้งหมด)
+-- 10. Core/Window.lua
 local WindowModule = loadModule("Core/Window.lua")
 local Window
 if WindowModule then
-    -- ถ้า Window เป็นฟังก์ชัน (แบบที่เราเขียนไว้) จะต้องเรียก Inject ก่อน
+    -- Inject dependencies
+    local deps = {
+        Utils = Utils,
+        Theme = ThemeModule,
+        Notification = Notification,
+        ConfigManager = ConfigManager,
+        KeySystem = KeySystem,
+        IntroEngine = IntroEngine,
+        BaseCard = BaseCard,
+        TabBar = TabBar,
+        TabFrame = TabFrame,
+        Elements = Elements,
+        MemoryGuard = MemoryGuard,
+        Obfuscator = Obfuscator,
+        MobileOptimizer = MobileOptimizer,
+        SafeGlobal = Init.SafeGlobal,
+        Services = Init.Services,
+    }
     if type(WindowModule) == "table" and WindowModule.Inject then
-        WindowModule.Inject({
-            Utils = Utils,
-            Theme = ThemeModule,
-            Notification = Notification,
-            ConfigManager = ConfigManager,
-            KeySystem = KeySystem,
-            IntroEngine = IntroEngine,
-            BaseCard = BaseCard,
-            TabBar = TabBar,
-            TabFrame = TabFrame,
-            Elements = Elements,
-            MemoryGuard = MemoryGuard,
-            Obfuscator = Obfuscator,
-            MobileOptimizer = MobileOptimizer,
-            SafeGlobal = Init.SafeGlobal,
-            Services = Init.Services,
-        })
+        WindowModule.Inject(deps)
         Window = WindowModule
     elseif type(WindowModule) == "function" then
-        -- ถ้า WindowModule เป็นฟังก์ชัน constructor เรียกเลย
-        Window = WindowModule({
-            Utils = Utils,
-            Theme = ThemeModule,
-            Notification = Notification,
-            ConfigManager = ConfigManager,
-            KeySystem = KeySystem,
-            IntroEngine = IntroEngine,
-            BaseCard = BaseCard,
-            TabBar = TabBar,
-            TabFrame = TabFrame,
-            Elements = Elements,
-            MemoryGuard = MemoryGuard,
-            Obfuscator = Obfuscator,
-            MobileOptimizer = MobileOptimizer,
-            SafeGlobal = Init.SafeGlobal,
-            Services = Init.Services,
-        })
+        Window = WindowModule(deps)
     else
         warn("Window module มีรูปแบบไม่ถูกต้อง")
     end
@@ -146,34 +117,23 @@ end
 
 -- ===== สร้าง EclipseLib Object =====
 local EclipseLib = {
-    -- เวอร์ชั่น
-    Version = "1.0.0",
-    Codename = "Nexus",
-
-    -- โมดูลที่เปิดให้ผู้ใช้เรียกโดยตรง
+    Version = "1.1.0",
+    Codename = "Nexus Remote",
     Init = Init,
     Utils = Utils,
     Theme = ThemeModule,
-    Window = Window,            -- สำหรับ Window.Create
+    Window = Window,
     Notification = Notification,
     ConfigManager = ConfigManager,
     KeySystem = KeySystem,
     IntroEngine = IntroEngine,
     MobileOptimizer = MobileOptimizer,
-    Elements = Elements,        -- เข้าถึง Element factories โดยตรง
-
-    -- ฟังก์ชันหลักที่ผู้ใช้จะเรียก
+    Elements = Elements,
     CreateWindow = Window and Window.Create,
 }
-
--- ถ้าต้องการให้ใช้ EclipseLib:Notify() ได้ทันที
 EclipseLib.Notify = function(opts)
-    if Notification then
-        Notification:Notify(opts)
-    end
+    if Notification then Notification:Notify(opts) end
 end
-
--- บันทึก SafeGlobal ไว้ (ผู้ใช้จะได้ไม่ต้องเรียก Init เอง)
 EclipseLib.SafeGlobal = Init.SafeGlobal
 
 return EclipseLib
