@@ -32,12 +32,6 @@ local EclipseLib = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/wino444/EclipseLib-Nexus/main/EclipseLib.lua"
 ))()
 ```
-
-ไฟล์ทางเลือก
-
-· สำหรับนักพัฒนา: ใช้ไฟล์ EclipseLib.lua (Unobfuscated)
-· สำหรับการใช้งานจริง: ใช้ build/EclipseLib_Obf.lua (Obfuscated 5 ชั้น)
-
 ---
 
 🚀 เริ่มต้นใช้งาน (Quick Start)
