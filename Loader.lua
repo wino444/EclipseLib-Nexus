@@ -1,7 +1,7 @@
 --[[
-    EclipseLib-Nexus Loader (Remote Edition) – Fixed
-    Version: 1.2.0
-    เรียก Constructor ของทุกโมดูลอย่างถูกต้อง
+    EclipseLib-Nexus Loader (Remote Edition) – Single Elements Library
+    Version: 2.0.0
+    โหลด Elements จากไฟล์เดียว ลด HTTP requests 12 -> 1
 ]]
 
 local BASE_URL = "https://raw.githubusercontent.com/wino444/EclipseLib-Nexus/main/"
@@ -85,7 +85,7 @@ if type(IntroEngine) == "function" then
 end
 deps.IntroEngine = IntroEngine
 
--- ===== 4. MobileOptimizer (ใช้ใน BaseCard) =====
+-- ===== 4. MobileOptimizer =====
 local MobileOptimizer = loadModule("Shield/MobileOptimizer.lua")
 if type(MobileOptimizer) == "function" then
     MobileOptimizer = MobileOptimizer(deps)
@@ -111,21 +111,14 @@ if type(TabFrame) == "function" then
 end
 deps.TabFrame = TabFrame
 
--- ===== 6. Elements (แต่ละตัวเป็น Factory ที่ต้องเรียก constructor) =====
+-- ===== 6. Elements (SINGLE FILE) =====
+local ElementsModule = loadModule("Components/Elements.lua")
 local Elements = {}
-local elementFiles = {
-    "Label", "Section", "Button", "Toggle", "Slider", "Dropdown",
-    "Input", "ProgressBar", "Paragraph", "ColorPicker", "Keybind", "Card"
-}
-for _, name in ipairs(elementFiles) do
-    local module = loadModule("Components/Elements/" .. name .. ".lua")
-    if module then
-        if type(module) == "function" then
-            Elements[name] = module(deps)   -- ได้ factory function
-        else
-            Elements[name] = module
-        end
-    end
+if type(ElementsModule) == "function" then
+    Elements = ElementsModule(deps)   -- เรียก constructor คืนตาราง factory functions
+    print("✅ Elements Library โหลดสำเร็จ: " .. #Elements .. " ฟังก์ชัน")
+else
+    warn("❌ Elements module ไม่อยู่ในรูปแบบที่คาดหวัง")
 end
 deps.Elements = Elements
 
@@ -142,8 +135,8 @@ end
 
 -- ===== 8. สร้าง EclipseLib Object =====
 local EclipseLib = {
-    Version = "1.2.0",
-    Codename = "Nexus Remote",
+    Version = "2.0.0",
+    Codename = "Nexus Singularity",
     Init = Init,
     Utils = Utils,
     Theme = ThemeModule,
