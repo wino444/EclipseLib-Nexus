@@ -1,7 +1,8 @@
 --[[
-    EclipseLib-Nexus Core/Window.lua (Complete – Self-contained)
+    EclipseLib-Nexus Core/Window.lua (Final Edition)
     ใช้ Elements Library ผ่าน deps.Elements
     ประกอบด้วย Welcome, Settings, Tab API พร้อม Fallback
+    แก้ไข KeySystem, AddLabel, Slider และอื่น ๆ
 ]]
 
 return function(deps)
@@ -248,7 +249,7 @@ return function(deps)
             MinBtn.Text = "—"
         end)
 
-        -- Helper card สำหรับใช้ในกรณีที่ BaseCard module ไม่พร้อม
+        -- Helper card
         local function createCard(parent, height)
             local c = Instance.new("Frame")
             c.BackgroundColor3 = Theme.Secondary
@@ -349,7 +350,7 @@ return function(deps)
             local l = Instance.new("TextLabel"); l.BackgroundTransparency=1; l.Size=UDim2.new(1,0,0,22); l.Text=text; l.TextColor3=Theme.Accent; l.Font=Enum.Font.GothamBold; l.TextSize=12; l.TextXAlignment=Enum.TextXAlignment.Left; l.Parent=sFrame
         end
 
-        -- Preset Themes
+        -- Preset Themes (ย่อส่วน, ใช้โค้ดเดิม)
         SecTitle("🎨 Preset Themes")
         local thCard = Instance.new("Frame"); thCard.BackgroundColor3=Theme.Secondary; thCard.Size=UDim2.new(1,0,0,0); thCard.AutomaticSize=Enum.AutomaticSize.Y; thCard.Parent=sFrame; CC(thCard,10); CS(thCard,Theme.Border,1)
         local leftBar = Instance.new("Frame"); leftBar.BackgroundColor3=Theme.Accent; leftBar.Size=UDim2.new(0,3,1,-16); leftBar.Position=UDim2.new(0,0,0,8); leftBar.BorderSizePixel=0; leftBar.Parent=thCard; CC(leftBar,2)
@@ -366,7 +367,7 @@ return function(deps)
             end)
         end
 
-        -- Custom Accent
+        -- Custom Accent (ย่อ)
         SecTitle("🖌️ Custom Accent Color")
         local rgbCard = createCard(sFrame,150)
         local prevFrame = Instance.new("Frame"); prevFrame.BackgroundColor3=Theme.Accent; prevFrame.Size=UDim2.new(1,-20,0,22); prevFrame.Position=UDim2.new(0,10,0,8); prevFrame.Parent=rgbCard; CC(prevFrame,6)
@@ -399,7 +400,7 @@ return function(deps)
             Notification:Notify({Title="🎨 ใช้สีแล้ว!", Content="R:"..rVal.." G:"..gVal.." B:"..bVal, Duration=2})
         end)
 
-        -- UI Size
+        -- UI Size (ย่อ)
         SecTitle("📏 ขนาด UI")
         local szRow = createCard(sFrame,48)
         local sl2 = Instance.new("UIListLayout"); sl2.FillDirection=Enum.FillDirection.Horizontal; sl2.Padding=UDim.new(0,6); sl2.VerticalAlignment=Enum.VerticalAlignment.Center; sl2.HorizontalAlignment=Enum.HorizontalAlignment.Center; sl2.Parent=szRow
@@ -467,7 +468,7 @@ return function(deps)
         end)
         if ConfigManager then ConfigManager:Register("MobileOptimizer", function() return MobileOptimizer and MobileOptimizer.Enabled end, function(v) if MobileOptimizer then MobileOptimizer:Toggle(v) end end) end
 
-        -- Reset Settings
+        -- Reset Settings (ย่อ)
         SecTitle("🔄 Reset การตั้งค่า")
         local resetCard = createCard(sFrame,126)
         local resetLy = Instance.new("UIGridLayout"); resetLy.CellSize=UDim2.new(0.46,0,0,28); resetLy.CellPadding=UDim2.new(0.04,0,0,6); resetLy.SortOrder=Enum.SortOrder.LayoutOrder; resetLy.Parent=resetCard
@@ -488,7 +489,7 @@ return function(deps)
             rb.MouseButton1Click:Connect(function() Tween(rb,{BackgroundColor3=Color3.fromRGB(80,40,120)},0.1); task.wait(0.15); Tween(rb,{BackgroundColor3=Color3.fromRGB(50,30,80)},0.2); item.fn() end)
         end
 
-        -- Config Save/Load
+        -- Config Save/Load (ย่อ)
         SecTitle("💾 บันทึก / โหลด Config")
         local saveCard = createCard(sFrame,182)
         local snL = Instance.new("TextLabel"); snL.BackgroundTransparency=1; snL.Position=UDim2.new(0,10,0,8); snL.Size=UDim2.new(1,-20,0,14); snL.Text="📝 ชื่อไฟล์ใหม่"; snL.TextColor3=Theme.SubText; snL.Font=Enum.Font.Gotham; snL.TextSize=11; snL.TextXAlignment=Enum.TextXAlignment.Left; snL.Parent=saveCard
@@ -565,9 +566,7 @@ return function(deps)
 
             -- Section
             function TabAPI:AddSection(o)
-                local factory = useElement("Section", function(p,o)
-                    return {}
-                end)
+                local factory = useElement("Section", function(p,o) return {} end)
                 return factory(tabFrame, o)
             end
 
@@ -637,7 +636,30 @@ return function(deps)
             -- Dropdown
             function TabAPI:AddDropdown(o)
                 local factory = useElement("Dropdown", function(p,o)
-                    return { GetValue=function() return "" end, SetOptions=function() end }
+                    local items = o.Options or {}
+                    local selected = o.Default or (items[1] or "")
+                    local expanded = false
+                    local wrapper = Instance.new("Frame"); wrapper.BackgroundTransparency=1; wrapper.Size=UDim2.new(1,0,0,46); wrapper.ClipsDescendants=false; wrapper.Parent=p
+                    local card = Instance.new("Frame"); card.BackgroundColor3=Theme.Secondary; card.Size=UDim2.new(1,0,0,46); card.ClipsDescendants=false; card.Parent=wrapper; CC(card,8); CS(card,Theme.Border)
+                    local nL = Instance.new("TextLabel"); nL.BackgroundTransparency=1; nL.Position=UDim2.new(0,10,0,6); nL.Size=UDim2.new(0.55,0,0,14); nL.Text=o.Name or "Dropdown"; nL.TextColor3=Theme.SubText; nL.Font=Enum.Font.Gotham; nL.TextSize=11; nL.TextXAlignment=Enum.TextXAlignment.Left; nL.Parent=card
+                    local sL = Instance.new("TextLabel"); sL.BackgroundTransparency=1; sL.Position=UDim2.new(0,10,0,22); sL.Size=UDim2.new(0.65,0,0,18); sL.Text=selected; sL.TextColor3=Theme.Text; sL.Font=Enum.Font.GothamBold; sL.TextSize=13; sL.TextXAlignment=Enum.TextXAlignment.Left; sL.Parent=card
+                    local ab = Instance.new("TextButton"); ab.BackgroundColor3=Theme.Accent; ab.Size=UDim2.new(0,30,0,30); ab.Position=UDim2.new(1,-40,0.5,-15); ab.Text="▼"; ab.TextColor3=Color3.fromRGB(255,255,255); ab.Font=Enum.Font.GothamBold; ab.TextSize=12; ab.Parent=card; CC(ab,6)
+                    local maxH = 150
+                    local dl = Instance.new("ScrollingFrame"); dl.BackgroundColor3=Theme.Dropdown_BG; dl.Position=UDim2.new(0,0,1,4); dl.Visible=false; dl.ZIndex=10; dl.Parent=card; dl.ScrollBarThickness=3; dl.ScrollBarImageColor3=Theme.Accent; dl.ScrollingDirection=Enum.ScrollingDirection.Y; dl.CanvasSize=UDim2.new(0,0,0,0); dl.ClipsDescendants=true; CC(dl,8); CS(dl,Theme.Border)
+                    local dly = Instance.new("UIListLayout"); dly.Padding=UDim.new(0,2); dly.SortOrder=Enum.SortOrder.LayoutOrder; dly.Parent=dl
+                    local dp = Instance.new("UIPadding"); dp.PaddingTop=UDim.new(0,4); dp.PaddingLeft=UDim.new(0,4); dp.PaddingRight=UDim.new(0,4); dp.Parent=dl
+                    local function populate()
+                        for _,c in ipairs(dl:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+                        for _,item in ipairs(items) do
+                            local ib = Instance.new("TextButton"); ib.BackgroundColor3=Theme.Secondary; ib.Size=UDim2.new(1,0,0,26); ib.Text=" "..item; ib.TextColor3=Theme.Text; ib.Font=Enum.Font.Gotham; ib.TextSize=12; ib.TextXAlignment=Enum.TextXAlignment.Left; ib.ZIndex=11; ib.Parent=dl; CC(ib,6)
+                            ib.MouseButton1Click:Connect(function() selected=item; sL.Text=item; expanded=false; dl.Visible=false; ab.Text="▼"; if o.Callback then o.Callback(item) end end)
+                        end
+                        local totalH = math.min(#items*30+8, maxH); dl.Size=UDim2.new(1,0,0,totalH); dl.CanvasSize=UDim2.new(0,0,0,#items*30+8)
+                    end
+                    populate()
+                    ab.MouseButton1Click:Connect(function() expanded=not expanded; dl.Visible=expanded; ab.Text=expanded and "▲" or "▼" end)
+                    if o.ConfigKey and ConfigManager then ConfigManager:Register(o.ConfigKey, function() return selected end, function(v) selected=v; sL.Text=v; if o.Callback then o.Callback(v) end end) end
+                    return { GetValue = function() return selected end, SetOptions = function(newItems) items=newItems; populate() end }
                 end)
                 return factory(tabFrame, o)
             end
@@ -645,7 +667,12 @@ return function(deps)
             -- Input
             function TabAPI:AddInput(o)
                 local factory = useElement("Input", function(p,o)
-                    return { GetValue=function() return "" end, SetValue=function() end }
+                    local card = BaseCardTab(60)
+                    local nL = Instance.new("TextLabel"); nL.BackgroundTransparency=1; nL.Position=UDim2.new(0,10,0,6); nL.Size=UDim2.new(1,-20,0,16); nL.Text=o.Name or "Input"; nL.TextColor3=Theme.SubText; nL.Font=Enum.Font.Gotham; nL.TextSize=11; nL.TextXAlignment=Enum.TextXAlignment.Left; nL.Parent=card
+                    local iBG = Instance.new("Frame"); iBG.BackgroundColor3=Theme.Input_BG; iBG.Size=UDim2.new(1,-20,0,28); iBG.Position=UDim2.new(0,10,0,26); iBG.Parent=card; CC(iBG,6); CS(iBG,Theme.Border)
+                    local box = Instance.new("TextBox"); box.BackgroundTransparency=1; box.Size=UDim2.new(1,-10,1,0); box.Position=UDim2.new(0,6,0,0); box.PlaceholderText=o.Placeholder or "พิมพ์ที่นี่..."; box.PlaceholderColor3=Theme.SubText; box.TextColor3=Theme.Text; box.Font=Enum.Font.Gotham; box.TextSize=12; box.TextXAlignment=Enum.TextXAlignment.Left; box.ClearTextOnFocus=false; box.Text=""; box.Parent=iBG
+                    box.FocusLost:Connect(function(ep) if ep and o.Callback then o.Callback(box.Text) end end)
+                    return { GetValue = function() return box.Text end, SetValue = function(v) box.Text=v end }
                 end)
                 return factory(tabFrame, o)
             end
@@ -653,6 +680,18 @@ return function(deps)
             -- ProgressBar
             function TabAPI:AddProgressBar(o)
                 local factory = useElement("ProgressBar", function(p,o)
+                    local maxValue = o.Max or 100; local valueFunc = o.Value or function() return 0 end
+                    local card = BaseCardTab(54)
+                    local nL = Instance.new("TextLabel"); nL.BackgroundTransparency=1; nL.Position=UDim2.new(0,10,0,6); nL.Size=UDim2.new(0.7,0,0,16); nL.Text=o.Name or "Progress"; nL.TextColor3=Theme.Text; nL.Font=Enum.Font.GothamBold; nL.TextSize=13; nL.TextXAlignment=Enum.TextXAlignment.Left; nL.Parent=card
+                    local vL = Instance.new("TextLabel"); vL.BackgroundTransparency=1; vL.Position=UDim2.new(0.7,0,0,6); vL.Size=UDim2.new(0.28,0,0,16); vL.Text="0/"..tostring(maxValue); vL.TextColor3=Theme.Accent; vL.Font=Enum.Font.GothamBold; vL.TextSize=11; vL.TextXAlignment=Enum.TextXAlignment.Right; vL.Parent=card
+                    local barBG = Instance.new("Frame"); barBG.BackgroundColor3=Theme.Slider_BG; barBG.Size=UDim2.new(1,-20,0,10); barBG.Position=UDim2.new(0,10,0,30); barBG.Parent=card; CC(barBG,5)
+                    local barFill = Instance.new("Frame"); barFill.BackgroundColor3=Theme.Accent; barFill.Size=UDim2.new(0,0,1,0); barFill.Parent=barBG; CC(barFill,5)
+                    addUpdater(card, function()
+                        local cur = valueFunc(); cur = math.clamp(cur,0,maxValue); local pct = cur/maxValue
+                        barFill.Size = UDim2.new(pct,0,1,0); vL.Text = math.floor(cur).."/"..maxValue
+                        barFill.BackgroundColor3 = (pct>0.6 and Color3.fromRGB(60,180,100)) or (pct>0.3 and Color3.fromRGB(200,160,40)) or Color3.fromRGB(200,60,60)
+                    end)
+                    card.Destroying:Connect(function() removeUpdatersForElement(card) end)
                     return {}
                 end)
                 return factory(tabFrame, o)
@@ -661,7 +700,13 @@ return function(deps)
             -- Paragraph
             function TabAPI:AddParagraph(o)
                 local factory = useElement("Paragraph", function(p,o)
-                    return { SetTitle=function() end, SetContent=function() end }
+                    local titleText = o.Title or ""; local contentText = o.Content or ""
+                    local lines = math.max(1, math.ceil(#contentText/42)); local h = 46 + (lines*16)
+                    local card = BaseCardTab(h)
+                    local tL = Instance.new("TextLabel"); tL.BackgroundTransparency=1; tL.Position=UDim2.new(0,10,0,8); tL.Size=UDim2.new(1,-20,0,18); tL.Text=titleText; tL.TextColor3=Theme.Text; tL.Font=Enum.Font.GothamBold; tL.TextSize=13; tL.TextXAlignment=Enum.TextXAlignment.Left; tL.Parent=card
+                    local sep = Instance.new("Frame"); sep.BackgroundColor3=Theme.Border; sep.Size=UDim2.new(1,-20,0,1); sep.Position=UDim2.new(0,10,0,28); sep.BorderSizePixel=0; sep.Parent=card
+                    local cL = Instance.new("TextLabel"); cL.BackgroundTransparency=1; cL.Position=UDim2.new(0,10,0,32); cL.Size=UDim2.new(1,-20,0,h-38); cL.Text=contentText; cL.TextColor3=Theme.SubText; cL.Font=Enum.Font.Gotham; cL.TextSize=12; cL.TextXAlignment=Enum.TextXAlignment.Left; cL.TextWrapped=true; cL.Parent=card
+                    return { SetTitle = function(t) tL.Text=t end, SetContent = function(t) cL.Text=t end }
                 end)
                 return factory(tabFrame, o)
             end
@@ -669,7 +714,38 @@ return function(deps)
             -- ColorPicker
             function TabAPI:AddColorPicker(o)
                 local factory = useElement("ColorPicker", function(p,o)
-                    return { GetColor=function() return Color3.new() end }
+                    local defaultColor = o.Default or Color3.fromRGB(100,60,200)
+                    local rVal, gVal, bVal = math.floor(defaultColor.R*255), math.floor(defaultColor.G*255), math.floor(defaultColor.B*255)
+                    local card = BaseCardTab(162)
+                    local nL = Instance.new("TextLabel"); nL.BackgroundTransparency=1; nL.Position=UDim2.new(0,10,0,6); nL.Size=UDim2.new(0.6,0,0,18); nL.Text=o.Name or "ColorPicker"; nL.TextColor3=Theme.Text; nL.Font=Enum.Font.GothamBold; nL.TextSize=13; nL.TextXAlignment=Enum.TextXAlignment.Left; nL.Parent=card
+                    local prev = Instance.new("Frame"); prev.BackgroundColor3=defaultColor; prev.Size=UDim2.new(0,36,0,20); prev.Position=UDim2.new(1,-46,0,6); prev.Parent=card; CC(prev,5); CS(prev,Theme.Border,1)
+                    local function updateColor()
+                        local c = Color3.fromRGB(rVal,gVal,bVal); prev.BackgroundColor3=c
+                        if o.Callback then o.Callback(c) end
+                    end
+                    local function makeSlider(label,yPos,init,col,onChange)
+                        local lbl = Instance.new("TextLabel"); lbl.BackgroundTransparency=1; lbl.Position=UDim2.new(0,10,0,yPos); lbl.Size=UDim2.new(0,14,0,14); lbl.Text=label; lbl.TextColor3=col; lbl.Font=Enum.Font.GothamBold; lbl.TextSize=11; lbl.Parent=card
+                        local valLbl = Instance.new("TextLabel"); valLbl.BackgroundTransparency=1; valLbl.Position=UDim2.new(1,-38,0,yPos); valLbl.Size=UDim2.new(0,32,0,14); valLbl.Text=tostring(init); valLbl.TextColor3=Theme.SubText; valLbl.Font=Enum.Font.GothamBold; valLbl.TextSize=10; valLbl.TextXAlignment=Enum.TextXAlignment.Right; valLbl.Parent=card
+                        local tr = Instance.new("Frame"); tr.BackgroundColor3=Theme.Slider_BG; tr.Size=UDim2.new(1,-58,0,7); tr.Position=UDim2.new(0,26,0,yPos+4); tr.Parent=card; CC(tr,3)
+                        local fi = Instance.new("Frame"); fi.BackgroundColor3=col; fi.Size=UDim2.new(init/255,0,1,0); fi.Parent=tr; CC(fi,3)
+                        local drag=false
+                        local function upd(pos)
+                            local r = math.clamp((pos.X-tr.AbsolutePosition.X)/tr.AbsoluteSize.X,0,1); local v=math.floor(r*255)
+                            fi.Size=UDim2.new(r,0,1,0); valLbl.Text=tostring(v); onChange(v); updateColor()
+                        end
+                        tr.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=true; upd(i.Position) end end)
+                        UserInputService.InputChanged:Connect(function(i) if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then upd(i.Position) end end)
+                        UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end end)
+                    end
+                    makeSlider("R",34,rVal,Color3.fromRGB(220,60,60),function(v) rVal=v end)
+                    makeSlider("G",60,gVal,Color3.fromRGB(60,200,80),function(v) gVal=v end)
+                    makeSlider("B",86,bVal,Color3.fromRGB(60,120,220),function(v) bVal=v end)
+                    local hexLabel = Instance.new("TextLabel"); hexLabel.BackgroundTransparency=1; hexLabel.Position=UDim2.new(0,10,0,110); hexLabel.Size=UDim2.new(1,-20,0,16); hexLabel.Text="Color3.fromRGB("..rVal..","..gVal..","..bVal..")"; hexLabel.TextColor3=Theme.SubText; hexLabel.Font=Enum.Font.Code; hexLabel.TextSize=10; hexLabel.TextXAlignment=Enum.TextXAlignment.Left; hexLabel.Parent=card
+                    local copyBtn = Instance.new("TextButton"); copyBtn.BackgroundColor3=Theme.Secondary; copyBtn.Size=UDim2.new(1,-20,0,26); copyBtn.Position=UDim2.new(0,10,0,130); copyBtn.Text="📋 Copy Color3"; copyBtn.TextColor3=Theme.Text; copyBtn.Font=Enum.Font.GothamBold; copyBtn.TextSize=11; copyBtn.Parent=card; CC(copyBtn,7); CS(copyBtn,Theme.Border,1)
+                    copyBtn.MouseButton1Click:Connect(function() SetClipboard("Color3.fromRGB("..rVal..","..gVal..","..bVal..")"); local old=copyBtn.Text; copyBtn.Text="✅ คัดลอกแล้ว!"; Tween(copyBtn,{BackgroundColor3=Color3.fromRGB(30,80,40)},0.15); task.wait(1.5); copyBtn.Text=old; Tween(copyBtn,{BackgroundColor3=Theme.Secondary},0.15) end)
+                    addUpdater(hexLabel, function(lbl) lbl.Text="Color3.fromRGB("..rVal..","..gVal..","..bVal..")" end)
+                    hexLabel.Destroying:Connect(function() removeUpdatersForElement(hexLabel) end)
+                    return { GetColor = function() return Color3.fromRGB(rVal,gVal,bVal) end }
                 end)
                 return factory(tabFrame, o)
             end
@@ -677,7 +753,27 @@ return function(deps)
             -- Keybind
             function TabAPI:AddKeybind(o)
                 local factory = useElement("Keybind", function(p,o)
-                    return { GetKey=function() return Enum.KeyCode.F end, SetKey=function() end }
+                    local currentKey = o.Default or Enum.KeyCode.F
+                    local isListening = false
+                    local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+                    local card = BaseCardTab(50)
+                    local nL = Instance.new("TextLabel"); nL.BackgroundTransparency=1; nL.Position=UDim2.new(0,10,0,6); nL.Size=UDim2.new(0.55,0,0,18); nL.Text=o.Name or "Keybind"; nL.TextColor3=Theme.Text; nL.Font=Enum.Font.GothamBold; nL.TextSize=13; nL.TextXAlignment=Enum.TextXAlignment.Left; nL.Parent=card
+                    local dL = Instance.new("TextLabel"); dL.BackgroundTransparency=1; dL.Position=UDim2.new(0,10,0,26); dL.Size=UDim2.new(0.55,0,0,16); dL.Text=o.Description or ""; dL.TextColor3=Theme.SubText; dL.Font=Enum.Font.Gotham; dL.TextSize=10; dL.TextXAlignment=Enum.TextXAlignment.Left; dL.Parent=card
+                    local keyBtn = Instance.new("TextButton"); keyBtn.Size=UDim2.new(0,80,0,28); keyBtn.Position=UDim2.new(1,-90,0.5,-14); keyBtn.Font=Enum.Font.GothamBold; keyBtn.TextSize=11; keyBtn.TextColor3=Color3.fromRGB(255,255,255); keyBtn.Parent=card; CC(keyBtn,7)
+                    if isMobile then
+                        keyBtn.BackgroundColor3=Theme.Accent; keyBtn.Text="▶ กด"
+                        keyBtn.MouseButton1Click:Connect(function() Tween(keyBtn,{BackgroundColor3=Theme.AccentHover},0.1); task.wait(0.1); Tween(keyBtn,{BackgroundColor3=Theme.Accent},0.15); if o.Callback then o.Callback() end end)
+                    else
+                        keyBtn.BackgroundColor3=Color3.fromRGB(40,36,60); keyBtn.Text="["..tostring(currentKey.Name).."]"; CS(keyBtn,Theme.Accent,1.5)
+                        local function startListening()
+                            if isListening then return end
+                            isListening=true; keyBtn.Text="[...]"; keyBtn.BackgroundColor3=Color3.fromRGB(80,40,120)
+                            local conn; conn=UserInputService.InputBegan:Connect(function(input,gp) if gp then return end; if input.UserInputType==Enum.UserInputType.Keyboard then currentKey=input.KeyCode; keyBtn.Text="["..tostring(currentKey.Name).."]"; keyBtn.BackgroundColor3=Color3.fromRGB(40,36,60); isListening=false; conn:Disconnect() end end)
+                        end
+                        keyBtn.MouseButton1Click:Connect(startListening)
+                        UserInputService.InputBegan:Connect(function(input,gp) if gp or isListening then return end; if input.UserInputType==Enum.UserInputType.Keyboard and input.KeyCode==currentKey then if o.Callback then o.Callback() end end end)
+                    end
+                    return { GetKey = function() return currentKey end, SetKey = function(k) currentKey=k; if not isMobile then keyBtn.Text="["..tostring(k.Name).."]" end end }
                 end)
                 return factory(tabFrame, o)
             end
@@ -685,7 +781,12 @@ return function(deps)
             -- Card
             function TabAPI:AddCard(o)
                 local factory = useElement("Card", function(p,o)
-                    return { SetTitle=function() end, SetContent=function() end }
+                    local titleText = o.Title or "Card"; local contentText = o.Content or ""; local h = o.Height or 80
+                    local card = BaseCardTab(h)
+                    local tL = Instance.new("TextLabel"); tL.BackgroundTransparency=1; tL.Position=UDim2.new(0,10,0,8); tL.Size=UDim2.new(1,-20,0,18); tL.Text=titleText; tL.TextColor3=Theme.Text; tL.Font=Enum.Font.GothamBold; tL.TextSize=13; tL.TextXAlignment=Enum.TextXAlignment.Left; tL.Parent=card
+                    local sep = Instance.new("Frame"); sep.BackgroundColor3=Theme.Border; sep.Size=UDim2.new(1,-20,0,1); sep.Position=UDim2.new(0,10,0,28); sep.BorderSizePixel=0; sep.Parent=card
+                    local cL = Instance.new("TextLabel"); cL.BackgroundTransparency=1; cL.Position=UDim2.new(0,10,0,32); cL.Size=UDim2.new(1,-20,0,h-38); cL.Text=contentText; cL.TextColor3=Theme.SubText; cL.Font=Enum.Font.Gotham; cL.TextSize=12; cL.TextXAlignment=Enum.TextXAlignment.Left; cL.TextWrapped=true; cL.Parent=card
+                    return { SetTitle = function(t) tL.Text=t end, SetContent = function(t) cL.Text=t end }
                 end)
                 return factory(tabFrame, o)
             end
@@ -693,7 +794,6 @@ return function(deps)
             return TabAPI
         end
 
-        -- WindowObj methods
         function WindowObj:Notify(opts) Notification:Notify(opts) end
         function WindowObj:Show() Main.Visible=true; Main.Size=UDim2.new(0,500,0,0); Tween(Main,{Size=UDim2.new(0,500,0,350)},0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out); floatBtn.Visible=false; isOpen=true; MinBtn.Text="—" end
         function WindowObj:Hide() Tween(Main,{Size=UDim2.new(0,500,0,0)},0.25); task.delay(0.3,function() Main.Visible=false; floatBtn.Visible=true end) end
